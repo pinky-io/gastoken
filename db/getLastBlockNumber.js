@@ -1,11 +1,13 @@
 const executeQuery = require('./executeQuery');
 
 const GET_LAST_BLOCK = `
-  query GetLastBlock {
-    block(limit: 1, order_by: {number: desc}) {
-      number
+    query GetLastBlock {
+        block(limit: 1, where: {number: {_lt: "3930684"}}, order_by: {number: desc}) {
+            base_fee
+            number
+            timestamp
+        }
     }
-  }
 `;
 
 async function getLastBlockNumber() {
