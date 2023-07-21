@@ -7,7 +7,7 @@ async function getBlockData(provider, blockNumber) {
 
     const res = await provider.getBlock(blockNumber);
 
-    return { base_fee: res.baseFeePerGas, number: blockNumber, timestamp: res.timestamp };
+    return { base_fee: res.baseFeePerGas.toString(), number: blockNumber, timestamp: res.timestamp };
 }
 
 async function getXBlockData(provider, blockNumberStart, blockNumberEnd) {
@@ -17,10 +17,8 @@ async function getXBlockData(provider, blockNumberStart, blockNumberEnd) {
     }
 
     // for (range(0, i))
-    for (i of Array(blockNumberEnd - blockNumberStart).keys()) {
-        data.push(getBlockData(provider, i + blockNumberStart));
-        console.log(data[data.length - 1])
-
+    for (i of Array(blockNumberEnd + 1 - blockNumberStart).keys()) {
+        data.push(await getBlockData(provider, i + blockNumberStart));
     }
 
     return data;
@@ -53,8 +51,8 @@ async function pushToDB() {
 
     for (i = 0; i < 1/*steps.length - 1*/; ++i) {
         const data = await getXBlockData(provider, steps[i], steps[i + 1]);
-        console.log(`pushing blocks ${steps[i]} to ${steps[i + 1]}...`)
-        addBlocksToDB(data);
+        // const res = await addBlocksToDB(data);
+        // console.log(res);
     }
 }
 
