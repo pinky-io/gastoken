@@ -1,4 +1,5 @@
 const axios = require("axios");
+const executeQuery = require("./executeQuery");
 
 const HASURA_ENDPOINT = process.env.HASURA_ENDPOINT;
 const HASURA_SECRET = process.env.HASURA_SECRET;
@@ -11,21 +12,10 @@ const ADD_BLOCKS = `
     }
 `;
 
-function addBlocks(objects) {
-  return axios({
-    url: HASURA_ENDPOINT,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-hasura-admin-secret": HASURA_SECRET,
-    },
-    data: {
-      query: ADD_BLOCKS,
-      variables: { objects },
-    },
-  }).then((response) => {
-    return response.data;
-  });
+async function addBlocks(objects) {
+  const response = await executeQuery(ADD_BLOCKS, { objects });
+  
+  return response.data;
 }
 
 module.exports = addBlocks;
