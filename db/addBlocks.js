@@ -5,9 +5,9 @@ const HASURA_SECRET = process.env.HASURA_SECRET;
 
 const ADD_BLOCKS = `
     mutation AddBlocks($objects: [block_insert_input!]!) {
-        insert_block(objects: $objects) {
-            affected_rows
-        }
+      insert_block(objects: $objects, on_conflict: {constraint: block_pkey, update_columns: []}) {
+        affected_rows
+      }
     }
 `;
 
