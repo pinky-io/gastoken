@@ -3,16 +3,15 @@ const axios = require("axios");
 const HASURA_ENDPOINT = process.env.HASURA_ENDPOINT;
 const HASURA_SECRET = process.env.HASURA_SECRET;
 
-// Utilisation de la fonction
 const ADD_BLOCKS = `
-    mutation AddBlocks($base_fee: bigint, $number: Int, $timestamp: timestamptz) {
-        insert_block(objects: {base_fee: $base_fee, number: $number, timestamp: $timestamp}) {
+    mutation AddBlocks($objects: [block_insert_input!]!) {
+        insert_block(objects: $objects) {
             affected_rows
         }
     }
 `;
 
-function addBlocks(variables) {
+function addBlocks(objects) {
   return axios({
     url: HASURA_ENDPOINT,
     method: "POST",
@@ -22,7 +21,7 @@ function addBlocks(variables) {
     },
     data: {
       query: ADD_BLOCKS,
-      variables: variables,
+      variables: { objects },
     },
   }).then((response) => {
     return response.data;
