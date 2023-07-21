@@ -3,6 +3,7 @@ require('dotenv').config()
 const ethers = require("ethers");
 const addBlocksToDB = require("./addBlocks");
 const formatTimestampToISO = require("./formatTimestampToISO");
+const getLastBlockNumber = require("./getLastBlockNumber")
 
 async function getBlockData(provider, blockNumber) {
 
@@ -43,16 +44,37 @@ const LAST_BLOCK = 3937884;
 const STEPS_NB = 50;
 const rpc = "https://eth-sepolia.public.blastapi.io";
 
-async function pushToDB() {
+async function pushToDB(startingBlockNb) {
     const provider = new ethers.JsonRpcProvider(rpc);
-    const blockNb = await provider.getBlockNumber();
 
-    const steps = getBlockNbSteps(FIRST_BLOCK, LAST_BLOCK, STEPS_NB);
+    const steps = getBlockNbSteps(startingBlockNb ?? FIRST_BLOCK, LAST_BLOCK, STEPS_NB);
 
     for (let i = 0; i < steps.length - 1; ++i) {
         const data = await getXBlockData(provider, steps[i], steps[i + 1]);
         console.log(`pushing blocks ${steps[i]} to ${steps[i + 1]}...`);
-        const res = addBlocksToDB(data);
-        console.log("🚀 ~ file: init.js:57 ~ pushToDB ~ res:", await res)
+        const res = await addBlocksToDB(data);
+        console.log("🚀 ~ file: init.js:55 ~ pushToDB ~ res:", res)
     }
 }
+
+async function main() {
+    const sleep = function sleep(seconds) {
+        return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+    }
+
+    let currentBlockNb = await getLastBlockNumber();
+
+    while (currentBlockNb !== LAST_BLOCK) {
+        try {
+            currentBlockNb = await getLastBlockNumber();
+            console.log(`current block: ${currentBlockNb ?? FIRST_BLOCK}`);
+            await pushToDB(currentBlockNb);
+        } catch (e) {
+            console.log(e);
+            await sleep(5);
+            console.log(`\nretrying...`)
+        }
+    }
+}
+
+main()
