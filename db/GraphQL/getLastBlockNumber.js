@@ -12,7 +12,7 @@ const GET_LAST_BLOCK = `
 
 async function getLastBlockNumber() {
   const data = await executeQuery(GET_LAST_BLOCK);
-  
+
   if (data && data.block && data.block.length > 0) {
     return data.block[0].number;
   } else {
