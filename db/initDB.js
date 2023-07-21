@@ -37,12 +37,20 @@ async function pushToDB(startingBlockNb) {
     }
 }
 
+
 async function main() {
-    let currentBlockNb = await getLastBlockNumber();
+    const getLastBlockNumberWrapper = async () => {
+        try {
+            return await getLastBlockNumber();
+        } catch (e) {
+            return undefined;
+        }
+    }
+    let currentBlockNb = await getLastBlockNumberWrapper();
 
     while (currentBlockNb !== LAST_BLOCK) {
         try {
-            currentBlockNb = await getLastBlockNumber();
+            currentBlockNb = await getLastBlockNumberWrapper();
             console.log(`current block: ${currentBlockNb ?? FIRST_BLOCK}`);
             await pushToDB(currentBlockNb);
         } catch (e) {
