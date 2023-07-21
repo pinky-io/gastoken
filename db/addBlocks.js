@@ -14,8 +14,8 @@ const ADD_BLOCKS = `
 
 async function addBlocks(objects) {
   const response = await executeQuery(ADD_BLOCKS, { objects });
-  
-  return response.data;
+
+  return response;
 }
 
 module.exports = addBlocks;
