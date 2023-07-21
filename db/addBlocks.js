@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 const HASURA_ENDPOINT = process.env.HASURA_ENDPOINT;
 const HASURA_SECRET = process.env.HASURA_SECRET;
 
@@ -11,26 +13,24 @@ const ADD_BLOCKS = `
 `;
 
 function fetchHasura(variables) {
-  return fetch(HASURA_ENDPOINT, {
-    method: "POST",
+  return axios({
+    url: HASURA_ENDPOINT,
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "x-hasura-admin-secret": HASURA_SECRET,
+      'Content-Type': 'application/json',
+      'x-hasura-admin-secret': HASURA_SECRET,
     },
-    body: JSON.stringify({
+    data: {
       query: ADD_BLOCKS,
       variables: variables,
-    }),
+    },
   })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("HTTP error " + response.status);
-      }
-      return response.json();
-    })
-    .catch(function () {
-      console.log("There was a network error.");
-    });
+  .then(response => {
+    return response.data;
+  })
+  .catch(function (error) {
+    console.error("There was a network error: ", error);
+  });
 }
 
-module.exports = fetchHasura
+module.exports = fetchHasura;
