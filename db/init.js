@@ -2,12 +2,13 @@ require('dotenv').config()
 
 const ethers = require("ethers");
 const addBlocksToDB = require("./addBlocks");
+const formatTimestampToISO = require("./formatTimestampToISO");
 
 async function getBlockData(provider, blockNumber) {
 
     const res = await provider.getBlock(blockNumber);
 
-    return { base_fee: res.baseFeePerGas.toString(), number: blockNumber, timestamp: res.timestamp };
+    return { base_fee: res.baseFeePerGas.toString(), number: blockNumber, timestamp: formatTimestampToISO(res.timestamp) };
 }
 
 async function getXBlockData(provider, blockNumberStart, blockNumberEnd) {
@@ -38,23 +39,24 @@ function getBlockNbSteps(firstBlockNb, lastBlockNb, steps) {
 }
 
 const FIRST_BLOCK = 3930684;
-const LAST_BLOCK = 3937884;
-const STEPS_NB = 50;
 const rpc = "https://eth-sepolia.public.blastapi.io";
 
 async function pushToDB() {
     const provider = new ethers.JsonRpcProvider(rpc);
     const blockNb = await provider.getBlockNumber();
 
-    // const steps = getBlockNbSteps(FIRST_BLOCK, LAST_BLOCK, STEPS_NB);
-    const steps = [FIRST_BLOCK, FIRST_BLOCK + 2]
+    const steps = [FIRST_BLOCK, FIRST_BLOCK + 50] // Veuillez modifier cela en fonction de vos besoins
 
-    for (i = 0; i < 1/*steps.length - 1*/; ++i) {
+    for (let i = 0; i < steps.length - 1; ++i) {
         const data = await getXBlockData(provider, steps[i], steps[i + 1]);
-        // const res = await addBlocksToDB(data);
-        // console.log(res);
+        console.log(`pushing blocks ${steps[i]} to ${steps[i + 1]}...`);
+        const res = await addBlocksToDB(data);
+        console.log("🚀 ~ file: init.js:57 ~ pushToDB ~ res:", res)
+
+        
     }
 }
+
 
 pushToDB()
 
