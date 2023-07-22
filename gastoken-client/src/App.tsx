@@ -1,33 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import './style/global.css';
+import Header from './components/header/header';
+import MintPage from './pages/mint-test/mint-test';
+import HomePage from './pages/home/home';
+import WalletService from './service/wallet.service';
 
 function App() {
-  const [count, setCount] = useState(0)
-
+  WalletService.getInstance();
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Router>
+        <Header />
+        <Routes>
+          <Route path="/" Component={HomePage} />
+          <Route path="/nft" Component={MintPage} />
+        </Routes>
+      </Router>
     </>
   )
 }

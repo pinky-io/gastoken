@@ -1,3 +1,6 @@
+@tailwind base;
+@tailwind utilities;
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -14,6 +17,15 @@
   -webkit-text-size-adjust: 100%;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -26,9 +38,12 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+}
+
+body {
+  background-color: #1F2126;
 }
 
 h1 {
@@ -66,4 +81,9 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+@font-face {
+  font-family: 'Kobuzan';
+  src: url('./assets/kobuzan-cy-grotesk-grand-dark.otf') format('opentype');
 }
