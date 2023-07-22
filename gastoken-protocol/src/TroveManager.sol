@@ -611,6 +611,12 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         return redemptionFee;
     }
 
+    // --- TCR function ---
+
+    function getTCR(uint256 _price) external view override returns (uint256) {
+        return _getTCR(_price);
+    }
+
     // --- Borrowing fee functions ---
 
     function getBorrowingRate() public pure override returns (uint256) {

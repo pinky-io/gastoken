@@ -84,4 +84,6 @@ interface ITroveManager is ILiquityBase {
     function increaseTroveDebt(address _borrower, uint256 _debtIncrease) external returns (uint256);
 
     function decreaseTroveDebt(address _borrower, uint256 _collDecrease) external returns (uint256);
+
+    function getTCR(uint256 _price) external view returns (uint256);
 }
