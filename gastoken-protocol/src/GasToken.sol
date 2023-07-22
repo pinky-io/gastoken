@@ -57,11 +57,7 @@ contract GasToken is CheckContract, IGasToken {
     address public immutable troveManagerAddress;
     address public immutable borrowerOperationsAddress;
 
-    // --- Events ---
-    event TroveManagerAddressChanged(address _troveManagerAddress);
-    event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
-
-    constructor(address _troveManagerAddress, address _borrowerOperationsAddress) public {
+    constructor(address _troveManagerAddress, address _borrowerOperationsAddress) {
         checkContract(_troveManagerAddress);
         checkContract(_borrowerOperationsAddress);
 
@@ -159,7 +155,7 @@ contract GasToken is CheckContract, IGasToken {
         external
         override
     {
-        require(deadline >= now, "GASETH: expired deadline");
+        require(deadline >= block.timestamp, "GASETH: expired deadline");
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -179,14 +175,14 @@ contract GasToken is CheckContract, IGasToken {
 
     // --- Internal operations ---
 
-    function _chainID() private pure returns (uint256 chainID) {
+    function _chainID() private view returns (uint256 chainID) {
         assembly {
             chainID := chainid()
         }
     }
 
-    function _buildDomainSeparator(bytes32 typeHash, bytes32 name, bytes32 version) private view returns (bytes32) {
-        return keccak256(abi.encode(typeHash, name, version, _chainID(), address(this)));
+    function _buildDomainSeparator(bytes32 typeHash, bytes32 _name, bytes32 _version) private view returns (bytes32) {
+        return keccak256(abi.encode(typeHash, _name, _version, _chainID(), address(this)));
     }
 
     // --- Internal operations ---
@@ -255,23 +251,23 @@ contract GasToken is CheckContract, IGasToken {
 
     // --- Optional functions ---
 
-    function name() external view override returns (string memory) {
+    function name() external pure override returns (string memory) {
         return _NAME;
     }
 
-    function symbol() external view override returns (string memory) {
+    function symbol() external pure override returns (string memory) {
         return _SYMBOL;
     }
 
-    function decimals() external view override returns (uint8) {
+    function decimals() external pure override returns (uint8) {
         return _DECIMALS;
     }
 
-    function version() external view override returns (string memory) {
+    function version() external pure override returns (string memory) {
         return _VERSION;
     }
 
-    function permitTypeHash() external view override returns (bytes32) {
+    function permitTypeHash() external pure override returns (bytes32) {
         return _PERMIT_TYPEHASH;
     }
 }

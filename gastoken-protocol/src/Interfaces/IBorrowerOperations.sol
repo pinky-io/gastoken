@@ -23,31 +23,25 @@ interface IBorrowerOperations {
     function setAddresses(
         address _troveManagerAddress,
         address _activePoolAddress,
-        address _stabilityPoolAddress,
         address _gasPoolAddress,
         address _priceFeedAddress,
         address _sortedTrovesAddress,
         address _gasTokenAddress
     ) external;
 
-    function openTrove(uint256 _maxFee, uint256 _GASETHAmount, address _upperHint, address _lowerHint)
-        external
-        payable;
+    function openTrove(uint256 _GASETHAmount, address _upperHint, address _lowerHint) external payable;
 
     function addColl(address _upperHint, address _lowerHint) external payable;
 
-    function moveETHGainToTrove(address _user, address _upperHint, address _lowerHint) external payable;
-
     function withdrawColl(uint256 _amount, address _upperHint, address _lowerHint) external;
 
-    function withdrawGASETH(uint256 _maxFee, uint256 _amount, address _upperHint, address _lowerHint) external;
+    function withdrawGASETH(uint256 _amount, address _upperHint, address _lowerHint) external;
 
     function repayGASETH(uint256 _amount, address _upperHint, address _lowerHint) external;
 
     function closeTrove() external;
 
     function adjustTrove(
-        uint256 _maxFee,
         uint256 _collWithdrawal,
         uint256 _debtChange,
         bool isDebtIncrease,

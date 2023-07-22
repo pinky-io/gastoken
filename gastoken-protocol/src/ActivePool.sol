@@ -23,13 +23,6 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
     uint256 internal ETH; // deposited ether tracker
     uint256 internal GASETHDebt;
 
-    // --- Events ---
-
-    event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
-    event TroveManagerAddressChanged(address _newTroveManagerAddress);
-    event ActivePoolGASETHDebtUpdated(uint256 _GASETHDebt);
-    event ActivePoolETHBalanceUpdated(uint256 _ETH);
-
     // --- Contract setters ---
 
     function setAddresses(address _borrowerOperationsAddress, address _troveManagerAddress) external onlyOwner {
@@ -75,26 +68,19 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
     function increaseGASETHDebt(uint256 _amount) external override {
         _requireCallerIsBOorTroveM();
         GASETHDebt = GASETHDebt.add(_amount);
-        ActivePoolGASETHDebtUpdated(GASETHDebt);
+        emit ActivePoolGASETHDebtUpdated(GASETHDebt);
     }
 
     function decreaseGASETHDebt(uint256 _amount) external override {
         _requireCallerIsBOorTroveM();
         GASETHDebt = GASETHDebt.sub(_amount);
-        ActivePoolGASETHDebtUpdated(GASETHDebt);
+        emit ActivePoolGASETHDebtUpdated(GASETHDebt);
     }
 
     // --- 'require' functions ---
 
     function _requireCallerIsBorrowerOperations() internal view {
         require(msg.sender == borrowerOperationsAddress, "ActivePool: Caller is not BO");
-    }
-
-    function _requireCallerIsBOorTroveM() internal view {
-        require(
-            msg.sender == borrowerOperationsAddress || msg.sender == troveManagerAddress,
-            "ActivePool: Caller is neither BorrowerOperations nor TroveManager"
-        );
     }
 
     function _requireCallerIsBOorTroveM() internal view {

@@ -10,6 +10,8 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 
 contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
+    using SafeMath for uint256;
+
     string public constant NAME = "TroveManager";
 
     // --- Connected contract declarations ---
@@ -106,22 +108,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         bool cancelledPartial;
     }
 
-    // --- Events ---
-
-    event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
-    event PriceFeedAddressChanged(address _newPriceFeedAddress);
-    event GasTokenAddressChanged(address _newGasTokenAddress);
-    event ActivePoolAddressChanged(address _activePoolAddress);
-    event GasPoolAddressChanged(address _gasPoolAddress);
-    event SortedTrovesAddressChanged(address _sortedTrovesAddress);
-
-    event Liquidation(uint256 _liquidatedDebt, uint256 _liquidatedColl);
-    event Redemption(uint256 _attemptedGASETHAmount, uint256 _actualGASETHAmount, uint256 _ETHSent, uint256 _ETHFee);
-    event TroveUpdated(
-        address indexed _borrower, uint256 _debt, uint256 _coll, TroveManagerOperation _operation
-    );
+    event TroveUpdated(address indexed _borrower, uint256 _debt, uint256 _coll, TroveManagerOperation _operation);
     event TroveLiquidated(address indexed _borrower, uint256 _debt, uint256 _coll, TroveManagerOperation _operation);
-    event TroveIndexUpdated(address _borrower, uint256 _newIndex);
 
     enum TroveManagerOperation {
         liquidateInNormalMode,
@@ -140,7 +128,6 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     ) external override onlyOwner {
         checkContract(_borrowerOperationsAddress);
         checkContract(_activePoolAddress);
-        checkContract(_stabilityPoolAddress);
         checkContract(_gasPoolAddress);
         checkContract(_priceFeedAddress);
         checkContract(_gasTokenAddress);
@@ -191,11 +178,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         internal
         returns (LiquidationValues memory singleLiquidation)
     {
-        ContractsCache memory contractsCache = ContractsCache(_activePool, gasToken, sortedTroves, gasPoolAddress);
-        (
-            singleLiquidation.entireTroveDebt,
-            singleLiquidation.entireTroveColl,
-        ) = getEntireDebtAndColl(_borrower);
+        ContractsCache memory _contractsCache = ContractsCache(_activePool, gasToken, sortedTroves, gasPoolAddress);
+        (singleLiquidation.entireTroveDebt, singleLiquidation.entireTroveColl) = getEntireDebtAndColl(_borrower);
 
         (singleLiquidation.debtToOffset, singleLiquidation.debtToRedistribute, singleLiquidation.collToRedistribute) =
             _getOffsetAndRedistributionVals(singleLiquidation.entireTroveDebt, singleLiquidation.entireTroveColl);
@@ -205,10 +189,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         // Send eth to liquidator in exchange of GASETH
         _contractsCache.gasToken.burn(liquidator, singleLiquidation.debtToRedistribute);
         _contractsCache.activePool.decreaseGASETHDebt(singleLiquidation.debtToRedistribute);
-        _contractsCache.activePool.sendETH(
-            liquidator,
-            singleLiquidation.collToRedistribute
-        );
+        _contractsCache.activePool.sendETH(liquidator, singleLiquidation.collToRedistribute);
 
         emit TroveLiquidated(
             _borrower,
@@ -257,10 +238,12 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         emit Liquidation(vars.liquidatedDebt, vars.liquidatedColl);
     }
 
-    function _getTotalsFromLiquidateTrovesSequence_NormalMode(IActivePool _activePool, uint256 _price, uint256 _n, address liquidator)
-        internal
-        returns (LiquidationTotals memory totals)
-    {
+    function _getTotalsFromLiquidateTrovesSequence_NormalMode(
+        IActivePool _activePool,
+        uint256 _price,
+        uint256 _n,
+        address liquidator
+    ) internal returns (LiquidationTotals memory totals) {
         LocalVariables_LiquidationSequence memory vars;
         LiquidationValues memory singleLiquidation;
         ISortedTroves sortedTrovesCached = sortedTroves;
@@ -271,7 +254,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
             if (vars.ICR < MCR) {
                 singleLiquidation = _liquidateNormalMode(_activePool, vars.user, liquidator);
-`
+
                 // Add liquidation values to their respective running totals
                 totals = _addLiquidationValuesToTotals(totals, singleLiquidation);
             } else {
@@ -366,7 +349,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         if (newDebt == 0) {
             // No debt left in the Trove (except for the liquidation reserve), therefore the trove gets closed
             _closeTrove(_borrower, Status.closedByRedemption);
-            _redeemCloseTrove(_contractsCache, _borrower, GASETH_GAS_COMPENSATION, newColl);
+            _redeemCloseTrove(_contractsCache, _borrower, 0, newColl);
             emit TroveUpdated(_borrower, 0, 0, TroveManagerOperation.redeemCollateral);
         } else {
             uint256 newNICR = LiquityMath._computeNominalCR(newColl, newDebt);
@@ -377,7 +360,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
             *
             * If the resultant net debt of the partial is less than the minimum, net debt we bail.
             */
-            if (newNICR != _partialRedemptionHintNICR || _getNetDebt(newDebt) < MIN_NET_DEBT) {
+            if (newNICR != _partialRedemptionHintNICR || newDebt < MIN_NET_DEBT) {
                 singleRedemption.cancelledPartial = true;
                 return singleRedemption;
             }
@@ -389,9 +372,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
             Troves[_borrower].debt = newDebt;
             Troves[_borrower].coll = newColl;
 
-            emit TroveUpdated(
-                _borrower, newDebt, newColl, TroveManagerOperation.redeemCollateral
-            );
+            emit TroveUpdated(_borrower, newDebt, newColl, TroveManagerOperation.redeemCollateral);
         }
 
         return singleRedemption;
@@ -410,10 +391,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         _contractsCache.gasToken.burn(gasPoolAddress, _GASETH);
         // Update Active Pool GASETH, and send ETH to account
         _contractsCache.activePool.decreaseGASETHDebt(_GASETH);
-        _contractsCache.activePool.sendETH(
-            _borrower,
-            _ETH
-        );
+        _contractsCache.activePool.sendETH(_borrower, _ETH);
     }
 
     function _isValidFirstRedemptionHint(ISortedTroves _sortedTroves, address _firstRedemptionHint, uint256 _price)
@@ -483,7 +461,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         }
 
         // Loop through the Troves starting from the one with lowest collateral ratio until _amount of GASETH is exchanged for collateral
-        if (_maxIterations == 0) _maxIterations = uint256(-1);
+        if (_maxIterations == 0) _maxIterations = type(uint256).max;
         while (currentBorrower != address(0) && totals.remainingGASETH > 0 && _maxIterations > 0) {
             _maxIterations--;
             // Save the address of the Trove preceding the current one, before potentially modifying the list
@@ -619,11 +597,11 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
     // --- Redemption fee functions ---
 
-    function getRedemptionRate() public view override returns (uint256) {
+    function getRedemptionRate() public pure override returns (uint256) {
         return REDEMPTION_FEE;
     }
 
-    function getRedemptionFee(uint256 _ETHDrawn) public view override returns (uint256) {
+    function getRedemptionFee(uint256 _ETHDrawn) public pure returns (uint256) {
         return _calcRedemptionFee(getRedemptionRate(), _ETHDrawn);
     }
 
@@ -635,11 +613,11 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
     // --- Borrowing fee functions ---
 
-    function getBorrowingRate() public view override returns (uint256) {
+    function getBorrowingRate() public pure override returns (uint256) {
         return BORROWING_FEE;
     }
 
-    function getBorrowingFee(uint256 _GASETHDebt) external view override returns (uint256) {
+    function getBorrowingFee(uint256 _GASETHDebt) external pure override returns (uint256) {
         return _calcBorrowingFee(getBorrowingRate(), _GASETHDebt);
     }
 

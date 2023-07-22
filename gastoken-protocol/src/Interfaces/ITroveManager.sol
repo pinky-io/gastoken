@@ -18,8 +18,8 @@ interface ITroveManager is ILiquityBase {
 
     event Liquidation(uint256 _liquidatedDebt, uint256 _liquidatedColl);
     event Redemption(uint256 _attemptedGASETHAmount, uint256 _actualGASETHAmount, uint256 _ETHSent, uint256 _ETHFee);
-    event TroveUpdated(address indexed _borrower, uint256 _debt, uint256 _coll, TroveManagerOperation _operation);
-    event TroveLiquidated(address indexed _borrower, uint256 _debt, uint256 _coll, TroveManagerOperation _operation);
+    event TroveUpdated(address indexed _borrower, uint256 _debt, uint256 _coll, uint8 _operation);
+    event TroveLiquidated(address indexed _borrower, uint256 _debt, uint256 _coll, uint8 _operation);
     event TroveIndexUpdated(address _borrower, uint256 _newIndex);
 
     // --- Functions ---
@@ -71,8 +71,6 @@ interface ITroveManager is ILiquityBase {
 
     function getTroveStatus(address _borrower) external view returns (uint256);
 
-    function getTroveStake(address _borrower) external view returns (uint256);
-
     function getTroveDebt(address _borrower) external view returns (uint256);
 
     function getTroveColl(address _borrower) external view returns (uint256);
@@ -86,6 +84,4 @@ interface ITroveManager is ILiquityBase {
     function increaseTroveDebt(address _borrower, uint256 _debtIncrease) external returns (uint256);
 
     function decreaseTroveDebt(address _borrower, uint256 _collDecrease) external returns (uint256);
-
-    function getTCR(uint256 _price) external view returns (uint256);
 }

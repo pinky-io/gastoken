@@ -33,6 +33,9 @@ contract PriceFeed is Ownable, CheckContract, BaseMath, IPriceFeed {
     // Maximum time period allowed since Chainlink's latest round data timestamp, beyond which Chainlink is considered frozen.
     uint256 public constant TIMEOUT = 14400; // 4 hours: 60 * 60 * 4
 
+    // Maximum deviation allowed between two consecutive Chainlink oracle prices. 18-digit precision.
+    uint256 public constant MAX_PRICE_DEVIATION_FROM_PREVIOUS_ROUND = 5e17; // 50%
+
     // The last good price seen from an oracle by Liquity
     uint256 public lastGoodPrice;
 
@@ -43,8 +46,6 @@ contract PriceFeed is Ownable, CheckContract, BaseMath, IPriceFeed {
         bool success;
         uint8 decimals;
     }
-
-    event LastGoodPriceUpdated(uint256 _lastGoodPrice);
 
     // --- Dependency setters ---
 

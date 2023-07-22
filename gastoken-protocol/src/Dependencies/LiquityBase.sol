@@ -49,7 +49,7 @@ contract LiquityBase is BaseMath, ILiquityBase {
         return TCR;
     }
 
-    function _checkRecoveryMode(uint256) internal view returns (bool) {
+    function _checkRecoveryMode(uint256) internal pure returns (bool) {
         return false;
     }
 

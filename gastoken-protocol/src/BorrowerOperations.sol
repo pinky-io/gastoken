@@ -11,6 +11,8 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 
 contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOperations {
+    using SafeMath for uint256;
+
     string public constant NAME = "BorrowerOperations";
 
     // --- Connected contract declarations ---
@@ -66,16 +68,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         adjustTrove
     }
 
-    event TroveManagerAddressChanged(address _newTroveManagerAddress);
-    event ActivePoolAddressChanged(address _activePoolAddress);
-    event GasPoolAddressChanged(address _gasPoolAddress);
-    event PriceFeedAddressChanged(address _newPriceFeedAddress);
-    event SortedTrovesAddressChanged(address _sortedTrovesAddress);
-    event GasTokenAddressChanged(address _gasTokenAddress);
-
-    event TroveCreated(address indexed _borrower, uint256 arrayIndex);
     event TroveUpdated(address indexed _borrower, uint256 _debt, uint256 _coll, BorrowerOperation operation);
-    event GASETHBorrowingFeePaid(address indexed _borrower, uint256 _GASETHFee);
 
     // --- Dependency setters ---
 
@@ -116,11 +109,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- Borrower Trove Operations ---
 
-    function openTrove(uint256 _maxFeePercentage, uint256 _GASETHAmount, address _upperHint, address _lowerHint)
-        external
-        payable
-        override
-    {
+    function openTrove(uint256 _GASETHAmount, address _upperHint, address _lowerHint) external payable override {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, gasToken);
         LocalVariables_openTrove memory vars;
 
@@ -141,7 +130,6 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         vars.NICR = LiquityMath._computeNominalCR(msg.value, vars.compositeDebt);
 
         _requireICRisAboveMCR(vars.ICR);
-        uint256 newTCR = _getNewTCRFromTroveChange(msg.value, true, vars.compositeDebt, true, vars.price); // bools: coll increase, debt increase
 
         // Set the trove struct's properties
         contractsCache.troveManager.setTroveStatus(msg.sender, 1);
@@ -162,38 +150,32 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // Send ETH as collateral to a trove
     function addColl(address _upperHint, address _lowerHint) external payable override {
-        _adjustTrove(msg.sender, 0, 0, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, 0, 0, false, _upperHint, _lowerHint);
     }
 
     // Withdraw ETH collateral from a trove
     function withdrawColl(uint256 _collWithdrawal, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint);
     }
 
     // Withdraw GASETH tokens from a trove: mint new GASETH tokens to the owner, and increase the trove's debt accordingly
-    function withdrawGASETH(uint256 _maxFeePercentage, uint256 _GASETHAmount, address _upperHint, address _lowerHint)
-        external
-        override
-    {
-        _adjustTrove(msg.sender, 0, _GASETHAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
+    function withdrawGASETH(uint256 _GASETHAmount, address _upperHint, address _lowerHint) external override {
+        _adjustTrove(msg.sender, 0, _GASETHAmount, true, _upperHint, _lowerHint);
     }
 
     // Repay GASETH tokens to a Trove: Burn the repaid GASETH tokens, and reduce the trove's debt accordingly
     function repayGASETH(uint256 _GASETHAmount, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, _GASETHAmount, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(msg.sender, 0, _GASETHAmount, false, _upperHint, _lowerHint);
     }
 
     function adjustTrove(
-        uint256 _maxFeePercentage,
         uint256 _collWithdrawal,
         uint256 _GASETHChange,
         bool _isDebtIncrease,
         address _upperHint,
         address _lowerHint
     ) external payable override {
-        _adjustTrove(
-            msg.sender, _collWithdrawal, _GASETHChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage
-        );
+        _adjustTrove(msg.sender, _collWithdrawal, _GASETHChange, _isDebtIncrease, _upperHint, _lowerHint);
     }
 
     /*
@@ -209,8 +191,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint256 _GASETHChange,
         bool _isDebtIncrease,
         address _upperHint,
-        address _lowerHint,
-        uint256 _maxFeePercentage
+        address _lowerHint
     ) internal {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, gasToken);
         LocalVariables_adjustTrove memory vars;
@@ -249,11 +230,11 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         assert(_collWithdrawal <= vars.coll);
 
         // Check the adjustment satisfies all conditions for the current system mode
-        _requireValidAdjustmentInCurrentMode(_collWithdrawal, _isDebtIncrease, vars);
+        _requireValidAdjustmentInCurrentMode(_isDebtIncrease, vars);
 
         // When the adjustment is a debt repayment, check it's a valid amount and that the caller has enough GASETH
         if (!_isDebtIncrease && _GASETHChange > 0) {
-            _requireAtLeastMinNetDebt(_getNetDebt(vars.debt).sub(vars.netDebtChange));
+            _requireAtLeastMinNetDebt(vars.debt.sub(vars.netDebtChange));
             _requireValidGASETHRepayment(vars.debt, vars.netDebtChange);
             _requireSufficientGASETHBalance(contractsCache.gasToken, _borrower, vars.netDebtChange);
         }
@@ -295,22 +276,18 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         IGasToken gasTokenCached = gasToken;
 
         _requireTroveisActive(troveManagerCached, msg.sender);
-        uint256 price = priceFeed.fetchPrice();
 
         uint256 coll = troveManagerCached.getTroveColl(msg.sender);
         uint256 debt = troveManagerCached.getTroveDebt(msg.sender);
 
-        _requireSufficientGASETHBalance(gasTokenCached, msg.sender, debt.sub(GASETH_GAS_COMPENSATION));
-
-        uint256 newTCR = _getNewTCRFromTroveChange(coll, false, debt, false, price);
+        _requireSufficientGASETHBalance(gasTokenCached, msg.sender, debt);
 
         troveManagerCached.closeTrove(msg.sender);
 
-        emit TroveUpdated(msg.sender, 0, 0, 0, BorrowerOperation.closeTrove);
+        emit TroveUpdated(msg.sender, 0, 0, BorrowerOperation.closeTrove);
 
-        // Burn the repaid GASETH from the user's balance and the gas compensation from the Gas Pool
-        _repayGASETH(activePoolCached, gasTokenCached, msg.sender, debt.sub(GASETH_GAS_COMPENSATION));
-        _repayGASETH(activePoolCached, gasTokenCached, gasPoolAddress, GASETH_GAS_COMPENSATION);
+        // Burn the repaid GASETH from the user's balance
+        _repayGASETH(activePoolCached, gasTokenCached, msg.sender, debt);
 
         // Send the collateral back to the user
         activePoolCached.sendETH(msg.sender, coll);
@@ -318,7 +295,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- Helper functions ---
 
-    function _triggerBorrowingFee(ITroveManager _troveManager, uint256 _GASETHAmount) internal returns (uint256) {
+    function _triggerBorrowingFee(ITroveManager _troveManager, uint256 _GASETHAmount) internal view returns (uint256) {
         uint256 GASETHFee = _troveManager.getBorrowingFee(_GASETHAmount);
 
         return GASETHFee;
@@ -444,11 +421,10 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         require(_collWithdrawal == 0, "BorrowerOps: Collateral withdrawal not permitted Recovery Mode");
     }
 
-    function _requireValidAdjustmentInCurrentMode(
-        uint256 _collWithdrawal,
-        bool _isDebtIncrease,
-        LocalVariables_adjustTrove memory _vars
-    ) internal view {
+    function _requireValidAdjustmentInCurrentMode(bool _isDebtIncrease, LocalVariables_adjustTrove memory _vars)
+        internal
+        view
+    {
         _requireICRisAboveMCR(_vars.newICR);
         _vars.newTCR = _getNewTCRFromTroveChange(
             _vars.collChange, _vars.isCollIncrease, _vars.netDebtChange, _isDebtIncrease, _vars.price
@@ -468,10 +444,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     }
 
     function _requireValidGASETHRepayment(uint256 _currentDebt, uint256 _debtRepayment) internal pure {
-        require(
-            _debtRepayment <= _currentDebt.sub(GASETH_GAS_COMPENSATION),
-            "BorrowerOps: Amount repaid must not be larger than the Trove's debt"
-        );
+        require(_debtRepayment <= _currentDebt, "BorrowerOps: Amount repaid must not be larger than the Trove's debt");
     }
 
     function _requireSufficientGASETHBalance(IGasToken _gasToken, address _borrower, uint256 _debtRepayment)
