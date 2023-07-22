@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import './form.css';
 import parameters from '../../data/geth_parameters';
-import WalletService from "../../service/wallet.service";
+import { getGETHBaseFee } from "../../service/wallet.service";
 
 function formatPercentage(percentage: number): string {
     return `${percentage * 100}%`;
@@ -40,7 +40,7 @@ const FormBorrowComponent = () => {
 
     useEffect(() => {
         async function fetchData(): Promise<void> {
-            const baseFee = await WalletService.getGETHBaseFee();
+            const baseFee = await getGETHBaseFee();
             setGETHBaseFee(baseFee);
         }
         fetchData();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import './form.css';
-import WalletService from "../../service/wallet.service";
 import parameters from "../../data/geth_parameters";
+import { getGETHBaseFee } from "../../service/wallet.service";
 
 function formatGweiPrice(priceGwei: number): number {
     return parseFloat(priceGwei.toFixed(4));
@@ -17,7 +17,7 @@ const FormRedeemComponent = () => {
 
     useEffect(() => {
         async function fetchData(): Promise<void> {
-            const baseFee = await WalletService.getGETHBaseFee();
+            const baseFee = await getGETHBaseFee();
             setGETHBaseFee(baseFee);
         }
         fetchData();

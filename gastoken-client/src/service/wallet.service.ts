@@ -1,50 +1,39 @@
-import { ethers } from 'ethers';
+import { configureChains, createConfig, sepolia } from "wagmi";
 
-class WalletService {
-  private static instance: WalletService;
-  private static provider: ethers.BrowserProvider;
-  private static signer: ethers.JsonRpcSigner;
-  private static gethBaseFee: number;
+import { InjectedConnector } from "wagmi/connectors/injected";
+import { publicProvider } from "wagmi/providers/public";
 
-  private constructor() {
-    if (!WalletService.instance) {
-      WalletService.instance = this
-    }
-  }
+const { chains, publicClient } = configureChains([sepolia], [publicProvider()]);
 
-  public static getInstance(): WalletService {
-    if (!WalletService.instance) {
-      WalletService.instance = new WalletService();
-    }
-    return WalletService.instance;
-  }
+export const injectedConnector = new InjectedConnector({ chains });
 
-  public static async connectWallet(): Promise<ethers.JsonRpcSigner> {
-    this.provider = new ethers.BrowserProvider(window.ethereum);
-    this.signer = await this.provider.getSigner();
-    return this.signer;
-  }
+export const config = createConfig({
+  autoConnect: true,
+  connectors: [
+    new InjectedConnector({
+      chains,
+      options: {
+        name: "Injected",
+        shimDisconnect: true,
+      },
+    }),
+  ],
+  publicClient,
+});
 
-  public static getProvider(): ethers.BrowserProvider {
-    return this.provider;
-  }
+export async function getGETHBaseFee(): Promise<number> {
+  const formatBaseFeeInGwei = (baseFeeWei: number): number => {
+    return baseFeeWei * Math.pow(10, -9);
+  };
 
-  public static async getGETHBaseFee(): Promise<number> {
-    if (this.gethBaseFee) return this.gethBaseFee;
-
-    const formatBaseFeeInGwei = (baseFeeWei: number): number => {
-      return baseFeeWei * Math.pow(10, -9);
-    }
-    try {
-      const response = await fetch('https://enormous-silkworm-21.hasura.app/api/rest/get-base-fee-average');
-      const jsonData = await response.json();
-      this.gethBaseFee = formatBaseFeeInGwei(jsonData.block_aggregate.aggregate.avg.base_fee);
-      return this.gethBaseFee;
-    } catch (error) {
-      console.error('Error fetching gETH base fee:', error);
-      throw error;
-    }
+  try {
+    const response = await fetch(
+      "https://enormous-silkworm-21.hasura.app/api/rest/get-base-fee-average"
+    );
+    const jsonData = await response.json();
+    return formatBaseFeeInGwei(jsonData.block_aggregate.aggregate.avg.base_fee);
+  } catch (error) {
+    console.error("Error fetching gETH base fee:", error);
+    throw error;
   }
 }
-
-export default WalletService;

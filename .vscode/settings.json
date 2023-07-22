@@ -2,5 +2,6 @@
     "conventionalCommits.scopes": [
         "db",
         "protocol"
-    ]
+    ],
+    "typescript.tsdk": "gastoken-client/node_modules/typescript/lib"
 }

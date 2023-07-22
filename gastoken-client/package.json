@@ -11,12 +11,13 @@
     "yarn": "yarn install --frozen-lockfile"
   },
   "dependencies": {
-    "ethers": "^6.6.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.14.2",
     "recharts": "^2.7.2",
-    "unplugin-fonts": "^1.0.3"
+    "unplugin-fonts": "^1.0.3",
+    "viem": "^1.4.0",
+    "wagmi": "^1.3.9"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
