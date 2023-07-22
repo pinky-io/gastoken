@@ -21,10 +21,12 @@ contract BorrowerOperationsTest is Test {
 
     address public owner;
     address public user;
+    address public redeemer;
 
     function setUp() public {
         owner = address(this);
         user = makeAddr("User");
+        redeemer = makeAddr("Redeemer");
 
         BO = new BorrowerOperations();
         TM = new TroveManager();
@@ -38,11 +40,34 @@ contract BorrowerOperationsTest is Test {
         BO.setAddresses(address(TM), address(AP), address(GP), address(PF), address(ST), address(GT));
         hoax(owner);
         TM.setAddresses(address(BO), address(AP), address(GP), address(PF), address(GT), address(ST));
-        // PF.setAddresses(address(0));//will fail if 0
+        ST.setParams(type(uint32).max, address(TM), address(BO));
+        AP.setAddresses(address(BO), address(TM));
+        // PF.setAddresses(address(0x4854405B3825f28Cb973b68CE883dF2bd776f32C));
     }
 
     function testOpenTrove() external {
         hoax(user);
-        BO.openTrove{value: 1 ether}(500000000 gwei, address(0), address(0));
+        BO.openTrove{value: 1 ether}(1 ether / 2, address(0), address(0));
+    }
+
+    function testRedeemCollateral() external {
+        this.testOpenTrove();
+
+        hoax(user);
+        GT.transfer(redeemer, 1 ether / 4);
+
+        hoax(redeemer);
+        //todo: use hinthelpers to create function parameter
+        TM.redeemCollateral(1 ether / 4, address(0), address(0), address(0), 200000000000000000000, 5);
+    }
+
+    function testCloseTrove() external {
+        hoax(user);
+        BO.openTrove{value: 1 ether}(1 ether / 2, address(0), address(0));
+        hoax(redeemer);
+        BO.openTrove{value: 1 ether}(1 ether / 2, address(0), address(0));
+
+        hoax(user);
+        BO.closeTrove();
     }
 }
