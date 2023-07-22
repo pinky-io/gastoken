@@ -340,7 +340,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         singleRedemption.GASETHLot = LiquityMath._min(_maxGASETHamount, Troves[_borrower].debt);
 
         // Get the ETHLot of equivalent value in GasToken
-        singleRedemption.ETHLot = singleRedemption.GASETHLot.mul(DECIMAL_PRECISION).div(_price);
+        singleRedemption.ETHLot = singleRedemption.GASETHLot.mul(_price).div(DECIMAL_PRECISION);
 
         // Decrease the debt and collateral of the current Trove according to the GASETH lot and corresponding ETH to send
         uint256 newDebt = (Troves[_borrower].debt).sub(singleRedemption.GASETHLot);

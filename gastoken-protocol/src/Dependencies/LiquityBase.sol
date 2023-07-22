@@ -47,10 +47,6 @@ contract LiquityBase is BaseMath, ILiquityBase {
         return TCR;
     }
 
-    function _checkRecoveryMode(uint256) internal pure returns (bool) {
-        return false;
-    }
-
     function _requireUserAcceptsFee(uint256 _fee, uint256 _amount, uint256 _maxFeePercentage) internal pure {
         uint256 feePercentage = _fee.mul(DECIMAL_PRECISION).div(_amount);
         require(feePercentage <= _maxFeePercentage, "Fee exceeded provided maximum");
