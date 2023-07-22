@@ -101,7 +101,7 @@ library LiquityMath {
 
     function _computeCR(uint256 _coll, uint256 _debt, uint256 _price) internal pure returns (uint256) {
         if (_debt > 0) {
-            uint256 newCollRatio = _coll.mul(_price).div(_debt);
+            uint256 newCollRatio = _coll.mul(10 ** 36).div(_price).div(_debt);
 
             return newCollRatio;
         }

@@ -15,10 +15,8 @@ import "../Interfaces/ILiquityBase.sol";
 contract LiquityBase is BaseMath, ILiquityBase {
     using SafeMath for uint256;
 
-    uint256 public constant _100pct = 1000000000000000000; // 1e18 == 100%
-
     // Minimum collateral ratio for individual troves
-    uint256 public constant MCR = 1100000000000000000; // 110%
+    uint256 public constant MCR = 3000000000000000000; // 300%
 
     uint256 public constant MIN_NET_DEBT = 1;
 
