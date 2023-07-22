@@ -20,7 +20,7 @@ contract LiquityBase is BaseMath, ILiquityBase {
     // Minimum collateral ratio for individual troves
     uint256 public constant MCR = 1100000000000000000; // 110%
 
-    uint256 public constant MIN_NET_DEBT = 0;
+    uint256 public constant MIN_NET_DEBT = 1;
 
     uint256 public constant BORROWING_FEE = DECIMAL_PRECISION / 1000 * 5; // 0.5%
 
