@@ -7,7 +7,7 @@ import { useWaitForTransaction } from "wagmi";
 import { parseEther } from "viem";
 import { addressConfig } from "../../contract/addressConfig";
 
-const ETH_NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const ETH_NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 function formatPercentage(percentage: number): string {
   return `${percentage * 100}%`;
@@ -141,8 +141,7 @@ const FormBorrowComponent = () => {
       write?.({
         value: BigInt(parseEther(collateralValue.toString(), "wei")),
         args: [
-            // receivedGas (en gwei) * 10^9 (wei / gwei) * 10^6 (gas units)
-          BigInt(Math.round(receivedGas)) * BigInt("1000000000") * BigInt("1000000"),
+          BigInt(Math.round(receivedGas)) * BigInt("1000000000"),
           ETH_NULL_ADDRESS,
           ETH_NULL_ADDRESS,
         ],
@@ -159,7 +158,7 @@ const FormBorrowComponent = () => {
               type="number"
               placeholder="Enter a collateral in ETH"
               className="p-[4px] bg-[#CBD5E0] rounded-sm"
-              value={collateralValue || ""}
+              value={collateralValue || 0}
               onChange={handleCollateralInputChange}
             ></input>
           </div>
@@ -168,7 +167,7 @@ const FormBorrowComponent = () => {
             <input
               placeholder="Enter an amount of gas"
               className="p-[4px] bg-[#CBD5E0] rounded-sm"
-              value={receivedGas || ""}
+              value={receivedGas || 0}
               onChange={handleDebtInputChange}
             ></input>
           </div>
