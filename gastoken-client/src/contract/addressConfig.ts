@@ -1,0 +1,6 @@
+export const addressConfig = {
+  borrowerOperations: "0x342A93F32e7884001d8929aF68aFE50464606fb0",
+  troveManager: "0x57d328e251EeA4F4ABBb434fb18980C08872560A",
+  hintHelper: "0x2D34362B695c8451dEBf65a2a6459325Cf52Ed46",
+  gasToken: "0xC2D3F56D36347321B8A9455D4aDB829292ba6333 ",
+} as const;
