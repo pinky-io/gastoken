@@ -15,8 +15,9 @@ const Header = () => {
   const { connect, connectors } = useConnect();
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
-  const { data, isLoading } = useBalance({ address });
+  const { data } = useBalance({ address });
   const [baseFee, setBaseFee] = useState(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function fetchGethBaseFee() {
@@ -24,7 +25,7 @@ const Header = () => {
       setBaseFee(gethBaseFee);
     }
 
-    fetchGethBaseFee();
+    fetchGethBaseFee().then(() => setIsLoading(false));
   }, []);
 
   const handleConnectWallet = async () => {
@@ -34,8 +35,6 @@ const Header = () => {
       connect({ connector: connectors[0] });
     }
   };
-
-  useEffect(() => {}, []);
 
   return (
     <nav className="t-navbar w-4/5 ml-auto mr-auto">
@@ -74,14 +73,24 @@ const Header = () => {
           )}
           <>
             {!isConnected || !address ? (
-              <button onClick={handleConnectWallet}>Connect wallet</button>
+              <button
+                className="text-white bg-[#434751] h-[36px] leading-[50%]"
+                onClick={handleConnectWallet}
+              >
+                Connect wallet
+              </button>
             ) : (
               <>
                 <WalletComponent
                   address={address}
                   walletBalance={data?.formatted || "0"}
                 />
-                <button onClick={handleConnectWallet}>Disconnect wallet</button>
+                <button
+                  className="text-white bg-[#434751] h-[36px] leading-[50%] ml-[12px]"
+                  onClick={handleConnectWallet}
+                >
+                  Disconnect wallet
+                </button>
               </>
             )}
           </>
