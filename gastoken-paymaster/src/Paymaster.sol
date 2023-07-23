@@ -3,20 +3,15 @@
 pragma solidity 0.8.19;
 
 // Import the required libraries and contracts
-import "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/utils/cryptography/EIP712.sol";
+import "../lib/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../lib/@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import "account-abstraction/core/EntryPoint.sol";
 import "account-abstraction/core/BasePaymaster.sol";
-import "account-abstraction/samples/utils/UniswapHelper.sol";
-import "account-abstraction/samples/utils/OracleHelper.sol";
+import "./utils/GasTokenHelper.sol";
+import "./utils/OracleHelper.sol";
 
-// TODO: note https://github.com/pimlicolabs/erc20-paymaster-contracts/issues/10
-// TODO: set a hard limit on how much gas a single user op may cost (postOp to fix the price)
-/// @title Sample ERC-20 Token Paymaster for ERC-4337
-/// @notice Based on Pimlico 'PimlicoERC20Paymaster' and OpenGSN 'PermitERC20UniswapV3Paymaster'
-/// This Paymaster covers gas fees in exchange for ERC20 tokens charged using allowance pre-issued by ERC-4337 accounts.
+/// This Paymaster covers gas fees in exchange for GasTokens charged using allowance pre-issued by ERC-4337 accounts.
 /// The contract refunds excess tokens if the actual gas cost is lower than the initially provided amount.
 /// The token price cannot be queried in the validation code due to storage access restrictions of ERC-4337.
 /// The price is cached inside the contract and is updated in the 'postOp' stage if the change is >10%.
@@ -26,7 +21,7 @@ import "account-abstraction/samples/utils/OracleHelper.sol";
 /// It also allows updating price configuration and withdrawing tokens by the contract owner.
 /// The contract uses an Oracle to fetch the latest token prices.
 /// @dev Inherits from BasePaymaster.
-contract TokenPaymaster is BasePaymaster, OracleHelper {
+contract TokenPaymaster is BasePaymaster, OracleHelper, GasTokenHelper {
     struct TokenPaymasterConfig {
         /// @notice The price markup percentage applied to the token price (1e6 = 100%)
         uint256 priceMarkup;
@@ -53,26 +48,19 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
 
     TokenPaymasterConfig private tokenPaymasterConfig;
 
-    // TODO: I don't like defaults in Solidity - accept ALL parameters of fail!!!
-    /// @notice Initializes the PimlicoERC20Paymaster contract with the given parameters.
-    /// @param _token The ERC20 token used for transaction fee payments.
-    /// @param _entryPoint The EntryPoint contract used in the Account Abstraction infrastructure.
-    /// @ param _tokenOracle The Oracle contract used to fetch the latest token prices.
-    /// @ param _nativeAssetOracle The Oracle contract used to fetch the latest native asset (ETH, Matic, Avax, etc.) prices.
-    /// @param _owner The address that will be set as the owner of the contract.
     constructor(
-        IERC20Metadata _token,
         IEntryPoint _entryPoint,
-        IERC20 _wrappedNative,
-        ISwapRouter _uniswap,
         TokenPaymasterConfig memory _tokenPaymasterConfig,
         OracleHelperConfig memory _oracleHelperConfig,
-        UniswapHelperConfig memory _uniswapHelperConfig,
         address _owner
     )
         BasePaymaster(_entryPoint)
         OracleHelper(_oracleHelperConfig)
-        UniswapHelper(_token, _wrappedNative, _uniswap, 10 ** _token.decimals(), _uniswapHelperConfig)
+        GasTokenHelper(
+            0x1730aBFbF1cB898B3840Ad18d5fE9dbFf8E4002f,
+            0x9949a1BC6ca6A67CD7436908E5d673Cf07B4FDFE,
+            0x2b130bD22C63EfBBF20CCb323Cc0Ac68495D8949
+        )
     {
         setTokenPaymasterConfig(_tokenPaymasterConfig);
         transferOwnership(_owner);
@@ -87,15 +75,11 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
         emit ConfigUpdated(_tokenPaymasterConfig);
     }
 
-    function setUniswapConfiguration(UniswapHelperConfig memory _uniswapHelperConfig) external onlyOwner {
-        _setUniswapHelperConfiguration(_uniswapHelperConfig);
-    }
-
     /// @notice Allows the contract owner to withdraw a specified amount of tokens from the contract.
     /// @param to The address to transfer the tokens to.
     /// @param amount The amount of tokens to transfer.
     function withdrawToken(address to, uint256 amount) external onlyOwner {
-        SafeERC20.safeTransfer(token, to, amount);
+        SafeERC20.safeTransfer(IERC20(address(token)), to, amount);
     }
 
     /// @notice Validates a paymaster user operation and calculates the required token amount for the transaction.
@@ -123,7 +107,7 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
                 }
             }
             uint256 tokenAmount = weiToToken(preChargeNative, cachedPriceWithMarkup);
-            SafeERC20.safeTransferFrom(token, userOp.sender, address(this), tokenAmount);
+            SafeERC20.safeTransferFrom(IERC20(address(token)), userOp.sender, address(this), tokenAmount);
             context = abi.encode(tokenAmount, userOp.maxFeePerGas, userOp.maxPriorityFeePerGas, userOp.sender);
             validationResult =
                 _packValidationData(false, uint48(cachedPriceTimestamp + tokenPaymasterConfig.priceMaxAge), 0);
@@ -146,7 +130,6 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
                 // Do nothing here to not revert the whole bundle and harm reputation
                 return;
             }
-            // TODO Julien Hache: replace updateCachePrice with our oracle data
             uint256 _cachedPrice = updateCachedPrice(false);
             // note: as price is in ether-per-token and we want more tokens increasing it means dividing it by markup
             uint256 cachedPriceWithMarkup = _cachedPrice * PRICE_DENOMINATOR / priceMarkup;
@@ -155,11 +138,13 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
             uint256 actualTokenNeeded = weiToToken(actualChargeNative, cachedPriceWithMarkup);
             if (preCharge > actualTokenNeeded) {
                 // If the initially provided token amount is greater than the actual amount needed, refund the difference
-                SafeERC20.safeTransfer(token, userOpSender, preCharge - actualTokenNeeded);
+                SafeERC20.safeTransfer(IERC20(address(token)), userOpSender, preCharge - actualTokenNeeded);
             } else if (preCharge < actualTokenNeeded) {
                 // Attempt to cover Paymaster's gas expenses by withdrawing the 'overdraft' from the client
                 // If the transfer reverts also revert the 'postOp' to remove the incentive to cheat
-                SafeERC20.safeTransferFrom(token, userOpSender, address(this), actualTokenNeeded - preCharge);
+                SafeERC20.safeTransferFrom(
+                    IERC20(address(token)), userOpSender, address(this), actualTokenNeeded - preCharge
+                );
             }
 
             emit UserOperationSponsored(userOpSender, actualTokenNeeded, actualGasCost, _cachedPrice);
@@ -171,9 +156,7 @@ contract TokenPaymaster is BasePaymaster, OracleHelper {
     function refillEntryPointDeposit(uint256 _cachedPrice) private {
         uint256 currentEntryPointBalance = entryPoint.balanceOf(address(this));
         if (currentEntryPointBalance < tokenPaymasterConfig.minEntryPointBalance) {
-            // HERE Julien Hache: Maybe redeem ETH from SP95 protocol
-            uint256 swappedWeth = _maybeSwapTokenToWeth(token, _cachedPrice);
-            unwrapWeth(swappedWeth);
+            uint256 swappedtokens = _maybeRedeemTokens(_cachedPrice);
             entryPoint.depositTo{value: address(this).balance}(address(this));
         }
     }
