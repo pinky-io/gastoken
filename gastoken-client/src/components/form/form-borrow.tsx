@@ -22,6 +22,8 @@ function computeReceivedGas(
   collateralizationRatio: number,
   gETHBaseFee: number
 ): number {
+  console.log({ collateral, collateralizationRatio, gETHBaseFee });
+
   return parseFloat(
     (
       (collateral * Math.pow(10, 3)) /
@@ -139,7 +141,8 @@ const FormBorrowComponent = () => {
       write?.({
         value: BigInt(parseEther(collateralValue.toString(), "wei")),
         args: [
-          BigInt(Math.round(receivedGas)) * BigInt("1000000000"),
+            // receivedGas (en gwei) * 10^9 (wei / gwei) * 10^6 (gas units)
+          BigInt(Math.round(receivedGas)) * BigInt("1000000000") * BigInt("1000000"),
           ETH_NULL_ADDRESS,
           ETH_NULL_ADDRESS,
         ],
