@@ -1,17 +1,19 @@
 import "./mint-test.css";
 import nftImage from "../../assets/nft_image.jpeg";
 import { useElFamosoContractMint } from "../../contract/generated";
-import { addressConfig } from '../../contract/addressConfig';
+import { addressConfig } from "../../contract/addressConfig";
 
 const MintPage = () => {
   // value : 0, quantité que tu veux mint : 1
-  const { data, write } = useElFamosoContractMint({
+  const { write } = useElFamosoContractMint({
+    //@ts-ignore
     address: addressConfig.famosoNft,
+    value: BigInt(0),
   });
 
   const minNft = () => {
     write({ args: [1] });
-  }
+  };
 
   return (
     <div className="flex justify-center mt-[120px]">

@@ -3,7 +3,6 @@ import "./form.css";
 import parameters from "../../data/geth_parameters";
 import { getGETHBaseFee } from "../../service/wallet.service";
 import { useBorrowerOperationsOpenTrove } from "../../contract/generated";
-import { addressConfig } from "../../contract/addressConfig";
 import { useWaitForTransaction } from "wagmi";
 import { parseEther } from "viem";
 
@@ -57,7 +56,7 @@ const FormBorrowComponent = () => {
   const [borrowingFee, setBorrowingFee] = useState<number>();
   const [baseFeeLiquidation, setBaseFeeLiquidation] = useState<number>();
   const { write, data: openTroveData } = useBorrowerOperationsOpenTrove();
-  const { data, isLoading } = useWaitForTransaction({
+  const { isLoading } = useWaitForTransaction({
     hash: openTroveData?.hash,
   });
 
@@ -93,8 +92,10 @@ const FormBorrowComponent = () => {
     fetchData();
   }, []);
 
-  const handleCollateralInputChange = (event) => {
-    const newValue = event.target.value;
+  const handleCollateralInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newValue = Number(event.target.value);
     setCollateralValue(newValue);
     setReceivedGas(
       gETHBaseFee
@@ -119,8 +120,10 @@ const FormBorrowComponent = () => {
     );
   };
 
-  const handleDebtInputChange = (event) => {
-    const newValue = event.target.value;
+  const handleDebtInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newValue = Number(event.target.value);
     setReceivedGas(newValue);
   };
 
