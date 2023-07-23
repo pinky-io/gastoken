@@ -61,15 +61,13 @@ contract PriceFeed is Ownable, CheckContract, BaseMath, IPriceFeed {
     */
     function fetchPrice() external override returns (uint256) {
         // Get current price data from Chainlink
-        // temporary mock data for testing purpose (should be done in test file)
-        return 20 gwei / 1000;
-        // bytes memory chainlinkResponse = _getCurrentChainlinkResponse();
+        bytes memory chainlinkResponse = _getCurrentChainlinkResponse();
 
-        // if (!_chainlinkIsBroken(chainlinkResponse)) {
-        //     return _storeChainlinkPrice(chainlinkResponse);
-        // } else {
-        //     return lastGoodPrice;
-        // }
+        if (!_chainlinkIsBroken(chainlinkResponse)) {
+            return _storeChainlinkPrice(chainlinkResponse);
+        } else {
+            return lastGoodPrice;
+        }
     }
 
     // --- Helper functions ---
