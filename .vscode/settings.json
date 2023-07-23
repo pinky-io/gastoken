@@ -1,7 +1,8 @@
 {
     "conventionalCommits.scopes": [
         "db",
-        "protocol"
+        "protocol",
+        "paymaster"
     ],
     "typescript.tsdk": "gastoken-client/node_modules/typescript/lib"
 }

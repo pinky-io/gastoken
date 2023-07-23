@@ -87,7 +87,7 @@ contract PriceFeed is Ownable, CheckContract, BaseMath, IPriceFeed {
     function _storeChainlinkPrice(bytes memory _chainlinkResponse) internal returns (uint256) {
         uint256 price = uint256(bytes32(_chainlinkResponse));
         // scaling down to have a coherent value
-        price = price / 10 ** 18;
+        price = price / 10 ** 21;
         _storePrice(price);
 
         return price;
