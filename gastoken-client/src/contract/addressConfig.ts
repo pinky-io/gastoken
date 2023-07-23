@@ -3,4 +3,5 @@ export const addressConfig = {
   troveManager: "0x57d328e251EeA4F4ABBb434fb18980C08872560A",
   hintHelper: "0x2D34362B695c8451dEBf65a2a6459325Cf52Ed46",
   gasToken: "0xC2D3F56D36347321B8A9455D4aDB829292ba6333 ",
+  famosoNft: "0xabA519DC71A3aAA93217515B1Fd0C1E1190eC7CA",
 } as const;
