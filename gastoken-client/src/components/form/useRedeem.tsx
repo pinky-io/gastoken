@@ -4,7 +4,7 @@ import { addressConfig } from "../../contract/addressConfig";
 import { useEffect, useState } from "react";
 
 export const useRedeem = (baseFee: number, gasToRedeem: number) => {
-  const [args, setArgs] = useState<[bigint, bigint, bigint]>([]);
+  const [args, setArgs] = useState<[bigint, bigint, bigint]>([0n, 0n, 0n]);
 
   const {
     data: hintHelperData,
