@@ -5,6 +5,9 @@ import { getGETHBaseFee } from "../../service/wallet.service";
 import { useBorrowerOperationsOpenTrove } from "../../contract/generated";
 import { useWaitForTransaction } from "wagmi";
 import { parseEther } from "viem";
+import { addressConfig } from "../../contract/addressConfig";
+
+const ETH_NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 function formatPercentage(percentage: number): string {
   return `${percentage * 100}%`;
@@ -55,7 +58,11 @@ const FormBorrowComponent = () => {
   const [receivedGas, setReceivedGas] = useState<number>();
   const [borrowingFee, setBorrowingFee] = useState<number>();
   const [baseFeeLiquidation, setBaseFeeLiquidation] = useState<number>();
-  const { write, data: openTroveData } = useBorrowerOperationsOpenTrove();
+  // @ts-ignore
+  const { write, data: openTroveData } = useBorrowerOperationsOpenTrove({
+    // @ts-ignore
+    address: addressConfig.borrowerOperations,
+  });
   const { isLoading } = useWaitForTransaction({
     hash: openTroveData?.hash,
   });
@@ -131,7 +138,11 @@ const FormBorrowComponent = () => {
     if (receivedGas)
       write?.({
         value: BigInt(parseEther(collateralValue.toString(), "wei")),
-        args: [BigInt(receivedGas), "0x0", "0x0"],
+        args: [
+          BigInt(Math.round(receivedGas)) * BigInt("1000000000"),
+          ETH_NULL_ADDRESS,
+          ETH_NULL_ADDRESS,
+        ],
       });
   }
 
